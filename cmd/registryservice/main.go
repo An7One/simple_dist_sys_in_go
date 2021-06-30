@@ -1,0 +1,37 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"net/http"
+
+	"github.com/an7one/tutorial/simple_dist_sys_in_go/registry"
+)
+
+func main() {
+	http.Handle("/services", &registry.RegistryService{})
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	defer cancel()
+
+	var srv http.Server
+	srv.Addr = registry.ServerPort
+
+	go func() {
+		log.Println(srv.ListenAndServe())
+		cancel()
+	}()
+
+	go func() {
+		fmt.Println("Registry service started. Press any key to stop.")
+		var s string
+		fmt.Scanln(&s)
+		srv.Shutdown(ctx)
+		cancel()
+	}()
+
+	<-ctx.Done()
+	fmt.Println("Shutting down registry service")
+}
